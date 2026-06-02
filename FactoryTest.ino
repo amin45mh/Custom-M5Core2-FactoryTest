@@ -3,7 +3,7 @@
     Please note the selection of your device on line 15 of the programs!
 */
 
-bool Device = 1;  // Please select your device
+bool Device = 0;  // Please select your device
                   // Core2 = 1,Core2_AWS = 0;
 
 #include <ArduinoECCX08.h>
