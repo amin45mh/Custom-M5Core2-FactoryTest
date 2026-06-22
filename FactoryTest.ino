@@ -1,7 +1,10 @@
 #include <M5Unified.h>
+#include <Unit_Sonic.h>
 #include <WiFi.h>
 #include <SD.h>
 #include <SPI.h>
+#include <FastLED.h>
+#include "M5UnitSynth.h"
 #include "line3D.h"
 #include "fft.h"
 
@@ -305,7 +308,43 @@ void MicroPhoneFFT() {
  *           MICROPHONE VISUALIZER END
  ***************************************************/
 
+/***************************************************
+ *                PSRAM TEST START
+ ***************************************************/
+int checkPsram() {
+  M5.Lcd.setTextSize(2);
+  M5.Lcd.setCursor(20, 50);
+  uint8_t *testbuff = (uint8_t *)ps_calloc(100 * 1024, sizeof(uint8_t));
+  if (testbuff == nullptr) {
+      M5.Lcd.print("PSRAM malloc failed");
+      return -1;
+  } else{
+      M5.Lcd.print("PSRAM malloc Successful");
+  }
+  delay(100);
+
+  M5.Lcd.setCursor(20, 80);
+  for (size_t i = 0; i < 102400; i++) {
+      testbuff[i] = 0xA5;
+      if (testbuff[i] != 0xA5) {
+          M5.Lcd.print("PSRAM read failed");
+          return -1;
+      }
+  }
+  M5.Lcd.print("PSRAM W&R Successful");
+  return 0;
+}
+/***************************************************
+ *                 PSRAM TEST END
+ ***************************************************/
+
+/***************************************************
+ *                    TEST START
+ ***************************************************/
+
 enum TestStep {
+  TEST_PORTS,
+  TEST_LEDS,
   TEST_DISPLAY,
   TEST_TOUCH,
   TEST_BUTTONS,
@@ -321,7 +360,8 @@ enum TestStep {
   TEST_COUNT
 };
 
-TestStep currentTest = TEST_MICROPHONE;
+
+TestStep currentTest = TEST_PORTS;
 
 bool touchDetected = false;
 bool buttonDetected = false;
@@ -348,8 +388,6 @@ void drawNextButton() {
 }
 
 bool nextPressed() {
-  M5.update();
-
   if (M5.BtnB.wasPressed()) {
     return true;
   }
@@ -386,8 +424,25 @@ void showResult(bool pass, const char* message) {
 
 void setupTestScreen() {
   switch (currentTest) {
+    case TEST_PORTS:
+      drawHeader("Port Test");
+      M5.Display.setTextSize(2);
+      M5.Display.setCursor(10, 90);
+      M5.Display.printf("Angle Unit: %d", 0);
+      M5.Display.setCursor(10, 120);
+      M5.Display.printf("Ultrasonic Unit: %d", 0);
+      drawNextButton();
+      break;
+    
+    case TEST_LEDS:
+      // drawHeader("LED Test");
+      // M5.Display.setCursor(10, 90);
+      // M5.Display.setTextSize(2);
+      // drawNextButton();
+      break;
+    
     case TEST_DISPLAY:
-      drawHeader("1. Display Test");
+      drawHeader("Display Test");
       M5.Display.fillRect(10, 50, 60, 60, RED);
       M5.Display.fillRect(80, 50, 60, 60, GREEN);
       M5.Display.fillRect(150, 50, 60, 60, BLUE);
@@ -397,7 +452,7 @@ void setupTestScreen() {
 
     case TEST_TOUCH:
       touchDetected = false;
-      drawHeader("2. Touch Test");
+      drawHeader("Touch Test");
       M5.Display.setCursor(10, 60);
       M5.Display.setTextSize(2);
       M5.Display.println("Touch the screen.");
@@ -406,7 +461,7 @@ void setupTestScreen() {
 
     case TEST_BUTTONS:
       buttonDetected = false;
-      drawHeader("3. Button Test");
+      drawHeader("Button Test");
       M5.Display.setCursor(10, 60);
       M5.Display.setTextSize(2);
       M5.Display.println("Press BtnA, BtnB, or BtnC.");
@@ -415,7 +470,7 @@ void setupTestScreen() {
 
     case TEST_IMU:
       imuDetected = false;
-      drawHeader("4. IMU Test");
+      drawHeader("IMU Test");
       M5.Display.setCursor(10, 60);
       M5.Display.setTextSize(2);
       M5.Display.println("Move or tilt the Core2.");
@@ -423,12 +478,12 @@ void setupTestScreen() {
       break;
 
     case TEST_MICROPHONE:
-      drawHeader("5. Microphone Test");
+      drawHeader("Microphone Test");
       drawNextButton();
       break;
 
     case TEST_SPEAKER:
-      drawHeader("6. Speaker Test");
+      drawHeader("Speaker Test");
       M5.Display.setCursor(10, 60);
       M5.Display.setTextSize(2);
       M5.Display.println("Playing tone...");
@@ -438,7 +493,7 @@ void setupTestScreen() {
       break;
 
     case TEST_VIBRATION:
-      drawHeader("7. Vibration Test");
+      drawHeader("Vibration Test");
       M5.Display.setCursor(10, 60);
       M5.Display.setTextSize(2);
       M5.Display.println("Vibrating...");
@@ -449,7 +504,7 @@ void setupTestScreen() {
       break;
 
     case TEST_RTC: {
-      drawHeader("8. RTC Test");
+      drawHeader("RTC Test");
 
       auto dt = M5.Rtc.getDateTime();
 
@@ -470,7 +525,7 @@ void setupTestScreen() {
     }
 
     case TEST_BATTERY: {
-      drawHeader("9. Battery / Power Test");
+      drawHeader("Battery / Power Test");
 
       int batteryLevel = M5.Power.getBatteryLevel();
       bool charging = M5.Power.isCharging();
@@ -485,7 +540,7 @@ void setupTestScreen() {
     }
 
     case TEST_MICROSD: {
-      drawHeader("10. microSD Test");
+      drawHeader("microSD Test");
 
       bool sdOK = SD.begin(GPIO_NUM_4);
 
@@ -504,7 +559,7 @@ void setupTestScreen() {
     }
 
     case TEST_WIFI: {
-      drawHeader("11. Wi-Fi Test");
+      drawHeader("Wi-Fi Test");
 
       WiFi.mode(WIFI_STA);
       int networks = WiFi.scanNetworks();
@@ -526,7 +581,7 @@ void setupTestScreen() {
     }
 
     case TEST_BLUETOOTH:
-      drawHeader("12. Bluetooth Test");
+      drawHeader("Bluetooth Test");
       M5.Display.setCursor(10, 60);
       M5.Display.setTextSize(2);
       M5.Display.println("BT hardware is internal.");
@@ -549,9 +604,34 @@ void setupTestScreen() {
   }
 }
 
+
+// Port test variables
+SONIC_I2C sonicSensor;
+M5UnitSynth synth;
+int notes[] = {60, 62, 64, 65, 67, 69, 71, 72};
+int notesCounter = 0;
+int potentiometerValue = 0;
+float ultraSonicValue = 0;
+int startTime = 0;
+
+// LED test variables
+#define LED_PIN 25
+#define NUM_LEDS 10
+CRGB leds[NUM_LEDS];
+uint8_t baseHue = 0;
+
 void nextTest() {
   if (currentTest < TEST_COUNT) {
     currentTest = (TestStep)(currentTest + 1);
+
+    if (currentTest == TEST_LEDS){// Turn off Synth
+      synth.setAllNotesOff(0);
+    }
+    if (currentTest == TEST_DISPLAY){// Turn off LEDs
+      FastLED.clear();
+      FastLED.show();
+    }
+
     setupTestScreen();
   }
 }
@@ -583,6 +663,43 @@ void setup() {
   microPhoneSetup();
   //**********
 
+  //LEDs
+  // FastLED.addLeds<SK6812, LED_PIN, GRB>(leds, NUM_LEDS);
+  // FastLED.setBrightness(0);
+  // fill_solid(leds, NUM_LEDS, CRGB::Black);
+  // FastLED.show();
+
+  //PSRAM
+  drawHeader("PSRAM Check:");
+  checkPsram();
+  delay(2000);
+
+  //Port setup screen
+  drawHeader("Connect the following:");
+  M5.Display.setCursor(10, 60);
+  M5.Display.setTextSize(2);
+  M5.Display.println("Ultrasonic Unit in Port A");
+  M5.Display.setCursor(10, 90);
+  M5.Display.println("Angle Unit in Port B");
+  M5.Display.setCursor(10, 120);
+  M5.Display.println("Synth Unit in Port C");
+  drawNextButton();
+  //*****************
+
+  while(1){
+    M5.update();
+    if (nextPressed()) {
+      break;
+    }
+  }
+
+  sonicSensor.begin();
+  pinMode(36, INPUT); // Port B
+  synth.begin(&Serial2, UNIT_SYNTH_BAUD, 13, 14); // Port C
+  synth.setVolume(0, 50);
+  startTime = millis();
+
+  M5.Display.clear();
   setupTestScreen();
 }
 
@@ -590,6 +707,57 @@ void loop() {
   M5.update();
 
   switch (currentTest) {
+    case TEST_PORTS:{
+      int newPotentiometerValue = analogRead(36);
+      float newUltraSonicValue = sonicSensor.getDistance();
+
+      if (abs(newPotentiometerValue - potentiometerValue) > 70){ //debaunce
+        M5.Display.fillRect(10, 90, 240, 20, BLACK);
+        potentiometerValue = newPotentiometerValue;
+        M5.Display.setCursor(10, 60);
+        M5.Display.printf("Angle Unit:");
+        M5.Display.setCursor(10, 90);
+        M5.Display.printf("%d", potentiometerValue);
+      }
+      if (abs(newUltraSonicValue - ultraSonicValue) > 10){
+        M5.Display.fillRect(10, 150, 240, 20, BLACK);
+        ultraSonicValue = newUltraSonicValue;
+        M5.Display.setCursor(10, 120);
+        M5.Display.printf("Ultrasonic Unit:");
+        M5.Display.setCursor(10, 150);
+        M5.Display.printf("%.2fmm", ultraSonicValue);
+      }
+      if (millis() - startTime >= 1000){
+        startTime = millis();
+        synth.setNoteOn(0, notes[notesCounter], 127);
+        notesCounter++;
+        if (notesCounter == 8){
+          notesCounter = 0;
+        }
+      }
+
+      break;
+    }
+    case TEST_LEDS:{
+      // if (millis() - startTime >= 100){
+      //   startTime = millis();
+      //   for (int i=0; i<NUM_LEDS; i++){
+      //     leds[i].setRGB(baseHue, 155, 20);
+          
+      //   }
+      //   M5.Display.fillRect(10, 90, 210, 30, BLACK);
+
+      //   M5.Display.setCursor(10, 90);
+      //   M5.Display.printf("Hue: %d", baseHue);
+
+      //   FastLED.show();
+      //   baseHue++;
+        
+      // }
+      nextTest();
+      break;
+    }
+
     case TEST_TOUCH: {
       auto touch = M5.Touch.getDetail();
 
@@ -597,11 +765,13 @@ void loop() {
         touchDetected = true;
 
         M5.Display.fillRect(10, 100, 210, 60, BLACK);
-        M5.Display.setCursor(10, 100);
         M5.Display.setTextSize(2);
+
+        M5.Display.setCursor(10, 100);
         M5.Display.setTextColor(GREEN);
         M5.Display.printf("X: %d", touch.x);
-        M5.Display.printf("Y: %d\n", touch.y);
+        M5.Display.setCursor(10, 130);
+        M5.Display.printf("Y: %d", touch.y);
         M5.Display.setTextColor(WHITE);
       }
 
