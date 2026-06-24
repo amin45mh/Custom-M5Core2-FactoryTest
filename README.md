@@ -108,6 +108,10 @@ For the port tests:
 
 ## Tested Components
 
+### PSRAM
+
+The PSRAM is tested by temporarily allocating a large chunk of memory.
+
 ### Ports
 
 The three external ports are tested using connected M5Stack units:
@@ -158,7 +162,7 @@ The microSD test checks whether the device can detect and access a microSD card.
 
 ### Wi-Fi
 
-The Wi-Fi test checks whether the M5Core2 can use its Wi-Fi hardware.
+The Wi-Fi test checks whether the M5Core2 can detect nearby Wifi Networks.
 
 ## Notes
 
