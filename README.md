@@ -54,6 +54,7 @@ These modules are used to test whether each Grove port is functioning correctly.
 1. Install the required libraries in the Arduino IDE:
 
    * M5Unified
+   * Adafruit NeoPixel
    * WiFi
    * SD
 
