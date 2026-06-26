@@ -1,9 +1,8 @@
 #include <M5Unified.h>
+#include <Adafruit_NeoPixel.h>
 #include <Unit_Sonic.h>
 #include <WiFi.h>
 #include <SD.h>
-#include <SPI.h>
-#include <FastLED.h>
 #include "M5UnitSynth.h"
 #include "line3D.h"
 #include "fft.h"
@@ -316,10 +315,14 @@ int checkPsram() {
   M5.Lcd.setCursor(20, 50);
   uint8_t *testbuff = (uint8_t *)ps_calloc(100 * 1024, sizeof(uint8_t));
   if (testbuff == nullptr) {
+      M5.Lcd.setTextColor(TFT_RED);
       M5.Lcd.print("PSRAM malloc failed");
+      M5.Lcd.setTextColor(TFT_WHITE);
       return -1;
   } else{
+      M5.Lcd.setTextColor(TFT_GREEN);
       M5.Lcd.print("PSRAM malloc Successful");
+      M5.Lcd.setTextColor(TFT_WHITE);
   }
   delay(100);
 
@@ -327,11 +330,15 @@ int checkPsram() {
   for (size_t i = 0; i < 102400; i++) {
       testbuff[i] = 0xA5;
       if (testbuff[i] != 0xA5) {
+          M5.Lcd.setTextColor(TFT_RED);
           M5.Lcd.print("PSRAM read failed");
+          M5.Lcd.setTextColor(TFT_WHITE);
           return -1;
       }
   }
+  M5.Lcd.setTextColor(TFT_GREEN);
   M5.Lcd.print("PSRAM W&R Successful");
+  M5.Lcd.setTextColor(TFT_WHITE);
   return 0;
 }
 /***************************************************
@@ -435,10 +442,10 @@ void setupTestScreen() {
       break;
     
     case TEST_LEDS:
-      // drawHeader("LED Test");
-      // M5.Display.setCursor(10, 90);
-      // M5.Display.setTextSize(2);
-      // drawNextButton();
+      drawHeader("LED Test");
+      M5.Display.setCursor(10, 90);
+      M5.Display.setTextSize(2);
+      drawNextButton();
       break;
     
     case TEST_DISPLAY:
@@ -616,9 +623,9 @@ int startTime = 0;
 
 // LED test variables
 #define LED_PIN 25
-#define NUM_LEDS 10
-CRGB leds[NUM_LEDS];
-uint8_t baseHue = 0;
+#define LED_COUNT 10
+Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
+int ledCounter = 0;
 
 void nextTest() {
   if (currentTest < TEST_COUNT) {
@@ -628,8 +635,8 @@ void nextTest() {
       synth.setAllNotesOff(0);
     }
     if (currentTest == TEST_DISPLAY){// Turn off LEDs
-      FastLED.clear();
-      FastLED.show();
+      strip.setBrightness(0);
+      strip.show();
     }
 
     setupTestScreen();
@@ -664,10 +671,8 @@ void setup() {
   //**********
 
   //LEDs
-  // FastLED.addLeds<SK6812, LED_PIN, GRB>(leds, NUM_LEDS);
-  // FastLED.setBrightness(0);
-  // fill_solid(leds, NUM_LEDS, CRGB::Black);
-  // FastLED.show();
+  strip.begin();
+  strip.setBrightness(50);
 
   //PSRAM
   drawHeader("PSRAM Check:");
@@ -739,22 +744,25 @@ void loop() {
       break;
     }
     case TEST_LEDS:{
-      // if (millis() - startTime >= 100){
-      //   startTime = millis();
-      //   for (int i=0; i<NUM_LEDS; i++){
-      //     leds[i].setRGB(baseHue, 155, 20);
-          
-      //   }
-      //   M5.Display.fillRect(10, 90, 210, 30, BLACK);
-
-      //   M5.Display.setCursor(10, 90);
-      //   M5.Display.printf("Hue: %d", baseHue);
-
-      //   FastLED.show();
-      //   baseHue++;
-        
-      // }
-      nextTest();
+      if (millis() - startTime >= 500){
+        startTime = millis();
+        if (ledCounter == 3){
+          ledCounter = 0;
+        }
+        for (int i=0; i<10; i++){
+          if ((i+ledCounter) % 3 == 0) {
+            strip.setPixelColor(i, strip.Color(255, 0, 0));   // red
+          } 
+          else if ((i+ledCounter) % 3 == 1) {
+            strip.setPixelColor(i, strip.Color(0, 255, 0));   // green
+          } 
+          else {
+            strip.setPixelColor(i, strip.Color(0, 0, 255));   // blue
+          }
+        }
+        strip.show();
+        ledCounter++;
+      }
       break;
     }
 
