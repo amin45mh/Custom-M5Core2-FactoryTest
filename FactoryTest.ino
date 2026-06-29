@@ -626,6 +626,7 @@ int startTime = 0;
 #define LED_COUNT 10
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 int ledCounter = 0;
+int ledColorCounter = 0;
 
 void nextTest() {
   if (currentTest < TEST_COUNT) {
@@ -744,22 +745,38 @@ void loop() {
       break;
     }
     case TEST_LEDS:{
-      if (millis() - startTime >= 500){
+      if (millis() - startTime >= 1000){
         startTime = millis();
-        if (ledCounter == 3){
+        if (ledCounter == 5){
           ledCounter = 0;
+          ledColorCounter++;
         }
-        for (int i=0; i<10; i++){
-          if ((i+ledCounter) % 3 == 0) {
-            strip.setPixelColor(i, strip.Color(255, 0, 0));   // red
-          } 
-          else if ((i+ledCounter) % 3 == 1) {
-            strip.setPixelColor(i, strip.Color(0, 255, 0));   // green
-          } 
-          else {
-            strip.setPixelColor(i, strip.Color(0, 0, 255));   // blue
-          }
+        if (ledColorCounter == 3){
+          ledColorCounter = 0;
         }
+        if (ledCounter > 0){
+          strip.setPixelColor(ledCounter-1, strip.Color(0, 0, 0));
+          strip.setPixelColor(ledCounter+5-1, strip.Color(0, 0, 0));
+        }
+        else{
+          strip.setPixelColor(4, strip.Color(0, 0, 0));
+          strip.setPixelColor(9, strip.Color(0, 0, 0));
+        }
+        switch (ledColorCounter){
+          case 0:
+            strip.setPixelColor(ledCounter, strip.Color(255, 0, 0));
+            strip.setPixelColor(ledCounter+5, strip.Color(255, 0, 0));
+            break;
+          case 1:
+            strip.setPixelColor(ledCounter, strip.Color(0, 255, 0));
+            strip.setPixelColor(ledCounter+5, strip.Color(0, 255, 0));
+            break;
+          case 2:
+            strip.setPixelColor(ledCounter, strip.Color(0, 0, 255));
+            strip.setPixelColor(ledCounter+5, strip.Color(0, 0, 255));
+            break;
+        }
+        
         strip.show();
         ledCounter++;
       }
