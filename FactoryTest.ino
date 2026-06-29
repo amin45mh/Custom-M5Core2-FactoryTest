@@ -350,6 +350,7 @@ int checkPsram() {
  ***************************************************/
 
 enum TestStep {
+  TEST_PSRAM,
   TEST_PORTS,
   TEST_LEDS,
   TEST_DISPLAY,
@@ -363,12 +364,13 @@ enum TestStep {
   TEST_BATTERY,
   TEST_MICROSD,
   TEST_WIFI,
-  TEST_BLUETOOTH,
   TEST_COUNT
 };
 
 
-TestStep currentTest = TEST_PORTS;
+TestStep currentTest = TEST_PSRAM;
+
+bool results[] = {false,false,false,false,false,false,false,false,false,false,false,false,false,false};
 
 bool touchDetected = false;
 bool buttonDetected = false;
@@ -381,27 +383,54 @@ void drawHeader(const char* title) {
   M5.Display.setCursor(10, 10);
   M5.Display.println(title);
 
-  M5.Display.setTextSize(1);
-  M5.Display.setCursor(10, 215);
-  M5.Display.println("Tap NEXT or press BtnB to continue");
+  if (currentTest == TEST_TOUCH){
+    M5.Display.setTextSize(1);
+    M5.Display.setCursor(10, 210);
+    M5.Display.println("Tap BtnB to PASS or BtnC to FAIL.");
+  }
 }
 
-void drawNextButton() {
-  M5.Display.fillRoundRect(230, 190, 80, 40, 8, BLUE);
-  M5.Display.setTextColor(WHITE);
-  M5.Display.setTextSize(2);
-  M5.Display.setCursor(248, 202);
-  M5.Display.print("NEXT");
+void drawNextButtons() {
+  if (currentTest != TEST_TOUCH){
+    M5.Display.fillRoundRect(140, 190, 80, 40, 8, GREEN);
+    M5.Display.setTextColor(WHITE);
+    M5.Display.setTextSize(2);
+    M5.Display.setCursor(158, 202);
+    M5.Display.print("PASS");
+
+    M5.Display.fillRoundRect(230, 190, 80, 40, 8, RED);
+    M5.Display.setTextColor(WHITE);
+    M5.Display.setTextSize(2);
+    M5.Display.setCursor(248, 202);
+    M5.Display.print("FAIL");
+  }
 }
 
 bool nextPressed() {
-  if (M5.BtnB.wasPressed()) {
-    return true;
-  }
-
   auto touch = M5.Touch.getDetail();
-  if (touch.wasPressed()) {
-    if (touch.x >= 230 && touch.x <= 310 && touch.y >= 190 && touch.y <= 230) {
+
+  if (currentTest != TEST_TOUCH){
+    if (touch.wasPressed()) {
+      //Pass Button
+      if (touch.x >= 140 && touch.x <= 220 && touch.y >= 190 && touch.y <= 230) {
+        updateResults(true);
+        return true;
+      }
+
+      //Fail Button
+      if (touch.x >= 230 && touch.x <= 310 && touch.y >= 190 && touch.y <= 230) {
+        updateResults(false);
+        return true;
+      }
+    }
+  }
+  else{
+    if (M5.BtnB.wasPressed()){
+      updateResults(true);
+      return true;
+    }
+    if (M5.BtnC.wasPressed()){
+      updateResults(false);
       return true;
     }
   }
@@ -409,24 +438,9 @@ bool nextPressed() {
   return false;
 }
 
-void showResult(bool pass, const char* message) {
-  M5.Display.setTextSize(2);
-  M5.Display.setCursor(10, 160);
-
-  if (pass) {
-    M5.Display.setTextColor(GREEN);
-    M5.Display.println("PASS");
-  } else {
-    M5.Display.setTextColor(RED);
-    M5.Display.println("CHECK MANUALLY");
-  }
-
-  M5.Display.setTextColor(WHITE);
-  M5.Display.setTextSize(1);
-  M5.Display.setCursor(10, 185);
-  M5.Display.println(message);
-
-  drawNextButton();
+void updateResults(bool pass) {
+  //may add serial port messages in the future
+  results[static_cast<int>(currentTest)] = pass;
 }
 
 void setupTestScreen() {
@@ -438,14 +452,14 @@ void setupTestScreen() {
       M5.Display.printf("Angle Unit: %d", 0);
       M5.Display.setCursor(10, 120);
       M5.Display.printf("Ultrasonic Unit: %d", 0);
-      drawNextButton();
+      drawNextButtons();
       break;
     
     case TEST_LEDS:
       drawHeader("LED Test");
       M5.Display.setCursor(10, 90);
       M5.Display.setTextSize(2);
-      drawNextButton();
+      drawNextButtons();
       break;
     
     case TEST_DISPLAY:
@@ -454,7 +468,10 @@ void setupTestScreen() {
       M5.Display.fillRect(80, 50, 60, 60, GREEN);
       M5.Display.fillRect(150, 50, 60, 60, BLUE);
       M5.Display.fillRect(220, 50, 60, 60, WHITE);
-      showResult(true, "If you see red, green, blue, white: OK");
+      M5.Display.setCursor(10, 120);
+      M5.Display.setTextSize(2);
+      M5.Display.println("Press any of the colors.");
+      drawNextButtons();
       break;
 
     case TEST_TOUCH:
@@ -463,7 +480,7 @@ void setupTestScreen() {
       M5.Display.setCursor(10, 60);
       M5.Display.setTextSize(2);
       M5.Display.println("Touch the screen.");
-      drawNextButton();
+      drawNextButtons();
       break;
 
     case TEST_BUTTONS:
@@ -471,22 +488,31 @@ void setupTestScreen() {
       drawHeader("Button Test");
       M5.Display.setCursor(10, 60);
       M5.Display.setTextSize(2);
-      M5.Display.println("Press BtnA, BtnB, or BtnC.");
-      drawNextButton();
+      M5.Display.println("Press BtnA, BtnB, or BtnC");
+
+      M5.Display.setTextColor(RED);
+
+      M5.Display.setCursor(10, 100);
+      M5.Display.println("Press BtnA");
+
+      M5.Display.setCursor(10, 125);
+      M5.Display.println("Press BtnB");
+
+      M5.Display.setCursor(10, 150);
+      M5.Display.println("Press BtnC");
+
+      drawNextButtons();
       break;
 
     case TEST_IMU:
       imuDetected = false;
       drawHeader("IMU Test");
-      M5.Display.setCursor(10, 60);
-      M5.Display.setTextSize(2);
-      M5.Display.println("Move or tilt the Core2.");
-      drawNextButton();
+      drawNextButtons();
       break;
 
     case TEST_MICROPHONE:
       drawHeader("Microphone Test");
-      drawNextButton();
+      drawNextButtons();
       break;
 
     case TEST_SPEAKER:
@@ -496,7 +522,10 @@ void setupTestScreen() {
       M5.Display.println("Playing tone...");
       M5.Speaker.tone(1000, 500);
       delay(600);
-      showResult(true, "If you heard a beep: OK");
+      M5.Display.setCursor(10, 120);
+      M5.Display.setTextSize(2);
+      M5.Display.println("Pass if you heard a beep.");
+      drawNextButtons();
       break;
 
     case TEST_VIBRATION:
@@ -507,7 +536,11 @@ void setupTestScreen() {
       M5.Power.setVibration(200);
       delay(700);
       M5.Power.setVibration(0);
-      showResult(true, "If you felt vibration: OK");
+      M5.Display.setCursor(10, 120);
+      M5.Display.println("Pass if you felt a");
+      M5.Display.setCursor(10, 150);
+      M5.Display.println("vibration.");
+      drawNextButtons();
       break;
 
     case TEST_RTC: {
@@ -517,32 +550,59 @@ void setupTestScreen() {
 
       M5.Display.setCursor(10, 60);
       M5.Display.setTextSize(2);
-      M5.Display.printf("%04d-%02d-%02d\n",
+      M5.Display.printf("%04d-%02d-%02d",
                         dt.date.year,
                         dt.date.month,
                         dt.date.date);
 
+      M5.Display.setCursor(10, 80);
       M5.Display.printf("%02d:%02d:%02d\n",
                         dt.time.hours,
                         dt.time.minutes,
                         dt.time.seconds);
 
-      showResult(true, "RTC responded. Time may need setting.");
+      M5.Display.setCursor(10, 120);
+      M5.Display.println("Pass if you see the");
+      M5.Display.setCursor(10, 140);
+      M5.Display.println("correct time.");
+      drawNextButtons();
       break;
     }
 
     case TEST_BATTERY: {
       drawHeader("Battery / Power Test");
 
-      int batteryLevel = M5.Power.getBatteryLevel();
-      bool charging = M5.Power.isCharging();
+      int batteryLevel = -1;
+      batteryLevel = M5.Power.getBatteryLevel();
 
-      M5.Display.setCursor(10, 60);
-      M5.Display.setTextSize(2);
-      M5.Display.printf("Battery: %d%%\n", batteryLevel);
-      M5.Display.printf("Charging: %s\n", charging ? "Yes" : "No");
+      if (batteryLevel >= 0){
 
-      showResult(batteryLevel >= 0, "Power chip responded.");
+        updateResults(true);
+
+        bool charging = M5.Power.isCharging();
+
+        M5.Display.setCursor(10, 60);
+        M5.Lcd.setTextColor(TFT_GREEN);
+        M5.Display.setTextSize(2);
+        M5.Display.printf("Battery: %d%%", batteryLevel);
+        M5.Display.setCursor(10, 80);
+        M5.Display.setTextSize(2);
+        M5.Display.printf("Charging: %s\n", charging ? "Yes" : "No");
+        M5.Lcd.setTextColor(TFT_WHITE);
+      }
+      
+      else{
+        updateResults(false);
+        M5.Display.setCursor(10, 120);
+        M5.Display.setTextSize(2);
+        M5.Lcd.setTextColor(TFT_RED);
+        M5.Display.println("Power chip did not respond.");
+      }
+
+      delay(3000);
+
+      nextTest();
+
       break;
     }
 
@@ -556,11 +616,16 @@ void setupTestScreen() {
 
       if (sdOK) {
         M5.Display.println("microSD detected");
-        showResult(true, "Card mounted successfully.");
       } else {
+        M5.Lcd.setTextColor(TFT_RED);
         M5.Display.println("No microSD detected");
-        showResult(false, "Insert card or ignore if unused.");
+        M5.Display.setCursor(10, 80);
+        M5.Display.setTextSize(2);
+        M5.Lcd.setTextColor(TFT_WHITE);
+        M5.Display.println("Pass if unused.");
       }
+
+      drawNextButtons();
 
       break;
     }
@@ -575,38 +640,117 @@ void setupTestScreen() {
       M5.Display.setTextSize(2);
 
       if (networks >= 0) {
-        M5.Display.printf("Networks: %d\n", networks);
-        showResult(true, "Wi-Fi scan completed.");
+        updateResults(true);
+        M5.Lcd.setTextColor(TFT_GREEN);
+        M5.Display.printf("%d networks found:", networks);
+        M5.Lcd.setTextColor(TFT_WHITE);
+        for (int i = 0; i < (networks < 6 ? networks : 5); i++){
+          M5.Display.setCursor(10, 80+20*i);
+          M5.Display.println(" "+WiFi.SSID(i));
+        }
+        M5.Lcd.setTextColor(TFT_WHITE);
       } else {
+        updateResults(false);
+        M5.Lcd.setTextColor(TFT_RED);
         M5.Display.println("Wi-Fi scan failed");
-        showResult(false, "Wi-Fi did not respond.");
+        M5.Lcd.setTextColor(TFT_WHITE);
       }
 
       WiFi.scanDelete();
       WiFi.mode(WIFI_OFF);
+      delay(3000);
+      nextTest();
       break;
     }
 
-    case TEST_BLUETOOTH:
-      drawHeader("Bluetooth Test");
-      M5.Display.setCursor(10, 60);
-      M5.Display.setTextSize(2);
-      M5.Display.println("BT hardware is internal.");
-      M5.Display.println("Full BT test needs");
-      M5.Display.println("pairing/scanning code.");
-      showResult(true, "Basic sketch reached BT step.");
-      break;
+    // case TEST_BLUETOOTH:
+    //   drawHeader("Bluetooth Test");
+    //   M5.Display.setCursor(10, 60);
+    //   M5.Display.setTextSize(2);
+    //   M5.Display.println("BT hardware is internal.");
+    //   M5.Display.println("Full BT test needs");
+    //   M5.Display.println("pairing/scanning code.");
+    //   showResult(true, "Basic sketch reached BT step.");
+    //   break;
 
     default:
-      drawHeader("Tests Complete");
-      M5.Display.setCursor(10, 70);
-      M5.Display.setTextSize(2);
-      M5.Display.setTextColor(GREEN);
-      M5.Display.println("All tests finished.");
-      M5.Display.setTextColor(WHITE);
+      drawHeader("Tests Complete:");
+      M5.Display.setCursor(10, 40);
       M5.Display.setTextSize(1);
-      M5.Display.setCursor(10, 120);
-      M5.Display.println("Restart device to run again.");
+      for (int i=0; i<static_cast<int>(TEST_COUNT); i++){
+        M5.Display.setCursor(10, 40+i*10);
+
+        auto color = RED;
+        if (results[i]){
+          color = GREEN;
+        }
+        M5.Display.setTextColor(color);
+
+        String text;
+
+        switch(i){
+          case 0:{
+            text = "PSRAM";
+            break;
+          }
+          case 1:{
+            text = "PORTS";
+            break;
+          }
+          case 2:{
+            text = "LED";
+            break;
+          }
+          case 3:{
+            text = "DISPLAY";
+            break;
+          }
+          case 4:{
+            text = "TOUCH";
+            break;
+          }
+          case 5:{
+            text = "BUTTONS";
+            break;
+          }
+          case 6:{
+            text = "IMU";
+            break;
+          }
+          case 7:{
+            text = "MICROPHONE";
+            break;
+          }
+          case 8:{
+            text = "SPEAKER";
+            break;
+          }
+          case 9:{
+            text = "VIBRATION";
+            break;
+          }
+          case 10:{
+            text = "RTC";
+            break;
+          }
+          case 11:{
+            text = "BATTERY";
+            break;
+          }
+          case 12:{
+            text = "MICROSD";
+            break;
+          }
+          case 13:{
+            text = "WIFI";
+            break;
+          }
+        }
+        M5.Display.println(text);
+      }
+      M5.Display.setTextSize(2);
+      M5.Display.setCursor(10, 220);
+      M5.Display.println("Reset device to run again");
       break;
   }
 }
@@ -640,7 +784,9 @@ void nextTest() {
       strip.show();
     }
 
-    setupTestScreen();
+    if (currentTest != TEST_PORTS){
+      setupTestScreen();
+    }
   }
 }
 
@@ -677,8 +823,9 @@ void setup() {
 
   //PSRAM
   drawHeader("PSRAM Check:");
-  checkPsram();
+  updateResults(!checkPsram());
   delay(2000);
+  nextTest();
 
   //Port setup screen
   drawHeader("Connect the following:");
@@ -689,12 +836,13 @@ void setup() {
   M5.Display.println("Angle Unit in Port B");
   M5.Display.setCursor(10, 120);
   M5.Display.println("Synth Unit in Port C");
-  drawNextButton();
+  M5.Display.setCursor(10, 160);
+  M5.Display.println("Tap BtnA when ready.");
   //*****************
 
   while(1){
     M5.update();
-    if (nextPressed()) {
+    if (M5.BtnA.wasPressed()) {
       break;
     }
   }
@@ -721,9 +869,7 @@ void loop() {
         M5.Display.fillRect(10, 90, 240, 20, BLACK);
         potentiometerValue = newPotentiometerValue;
         M5.Display.setCursor(10, 60);
-        M5.Display.printf("Angle Unit:");
-        M5.Display.setCursor(10, 90);
-        M5.Display.printf("%d", potentiometerValue);
+        M5.Display.printf("Angle Unit: %d", potentiometerValue);
       }
       if (abs(newUltraSonicValue - ultraSonicValue) > 10){
         M5.Display.fillRect(10, 150, 240, 20, BLACK);
@@ -744,6 +890,7 @@ void loop() {
 
       break;
     }
+
     case TEST_LEDS:{
       if (millis() - startTime >= 1000){
         startTime = millis();
@@ -783,6 +930,39 @@ void loop() {
       break;
     }
 
+    case TEST_DISPLAY:{
+      auto touch = M5.Touch.getDetail();
+      bool colorPressed = false;
+
+      if (touch.isPressed()) {
+        if (touch.x >= 10 && touch.x <= 50 && touch.y >= 70 && touch.y <= 130) {
+          M5.Display.fillRect(0, 0, 320, 240, RED);
+          colorPressed = true;
+        }
+
+        else if (touch.x >= 80 && touch.x <= 140 && touch.y >= 70 && touch.y <= 130) {
+          M5.Display.fillRect(0, 0, 320, 240, GREEN);
+          colorPressed = true;
+        }
+
+        else if (touch.x >= 150 && touch.x <= 210 && touch.y >= 70 && touch.y <= 130) {
+          M5.Display.fillRect(0, 0, 320, 240, BLUE);
+          colorPressed = true;
+        }
+
+        else if (touch.x >= 220 && touch.x <= 280 && touch.y >= 70 && touch.y <= 130) {
+          M5.Display.fillRect(0, 0, 320, 240, WHITE);
+          colorPressed = true;
+        }
+
+        if (colorPressed){
+          delay(2000);
+          setupTestScreen();
+        }
+      }
+      break;
+    }
+
     case TEST_TOUCH: {
       auto touch = M5.Touch.getDetail();
 
@@ -807,6 +987,7 @@ void loop() {
       if (M5.BtnA.wasPressed()) {
         buttonDetected = true;
         M5.Display.setCursor(10, 100);
+        M5.Display.fillRect(10, 100, 210, 20, BLACK);
         M5.Display.setTextColor(GREEN);
         M5.Display.setTextSize(2);
         M5.Display.println("BtnA pressed");
@@ -816,6 +997,7 @@ void loop() {
       if (M5.BtnB.wasPressed()) {
         buttonDetected = true;
         M5.Display.setCursor(10, 125);
+        M5.Display.fillRect(10, 125, 210, 20, BLACK);
         M5.Display.setTextColor(GREEN);
         M5.Display.setTextSize(2);
         M5.Display.println("BtnB pressed");
@@ -825,14 +1007,15 @@ void loop() {
       if (M5.BtnC.wasPressed()) {
         buttonDetected = true;
         M5.Display.setCursor(10, 150);
+        M5.Display.fillRect(10, 150, 210, 20, BLACK);
         M5.Display.setTextColor(GREEN);
         M5.Display.setTextSize(2);
         M5.Display.println("BtnC pressed");
         M5.Display.setTextColor(WHITE);
       }
-
       break;
 
+    
     case TEST_IMU: {
       MPU6886Page();
       break;
