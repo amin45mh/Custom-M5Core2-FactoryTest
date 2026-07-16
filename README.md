@@ -7,7 +7,7 @@ This project is a sequential hardware test program for the **M5Stack Core2**. It
 The test is intended to check the following components:
 
 * PSRAM
-* Port A, B, C
+* Port A, C
 * LEDs
 * Touchscreen
 * Buttons A, B, and C
@@ -43,9 +43,8 @@ You will also need the following hardware:
 
 Connect the external modules to the M5Core2 as follows:
 
-* Plug the **Sonic sensor unit** into **Port A**
-* Plug the **Angle unit** into **Port B**
-* Plug the **Synth unit** into **Port C**
+* Plug the **Angle Unit** into **Port A**
+* Plug the **Dual Button Unit** into **Port C**
 
 These modules are used to test whether each Grove port is functioning correctly.
 
@@ -96,16 +95,16 @@ The program moves through the hardware tests one at a time.
 
 To move to the next test, either:
 
-* Press the on-screen **Next** button, or
-* Press **Button B** on the M5Core2
+* Wait for the automatic test to finish
+* Press the on-screen **PASS** or **FAIL** button, or
+* Press **Button B** or **Button C** on the M5Core2 during the touch screen test
 
 During each test, observe the screen, connected module, sound, vibration, or sensor output to determine whether the component is working correctly.
 
 For the port tests:
 
-* During the **Port A** test, verify that the Sonic sensor unit is responding by waving your hand at the sonic sensor.
-* During the **Port B** test, verify that the Angle unit is responding by turning the knob.
-* During the **Port C** test, verify that the Synth unit is responding by listening whether notes are being played.
+* During the **Port A** test, verify that the Angle unit is responding by turning the knob.
+* During the **Port C** test, verify that the Dual button unit is responding by pressing the buttons.
 
 ## Tested Components
 
@@ -117,9 +116,8 @@ The PSRAM is tested by temporarily allocating a large chunk of memory.
 
 The three external ports are tested using connected M5Stack units:
 
-* Port A: I2C
-* Port B: GPIO
-* Port C: UART
+* Port A: GPIO
+* Port C: GPIO
 
 ### LEDs
 
