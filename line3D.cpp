@@ -19,7 +19,7 @@ bool line3D::point2DToDisPoint(point_2d_t *point, uint8_t *x, uint8_t *y) {
     return true;
 }
 
-bool line3D::printLine3D(TFT_eSprite *display, line_3d_t *line,
+bool line3D::printLine3D(M5Canvas *display, line_3d_t *line,
                          uint32_t color) {
     uint8_t start_x, start_y, end_x, end_y;
     point_2d_t point;

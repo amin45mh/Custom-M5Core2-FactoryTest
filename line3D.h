@@ -2,7 +2,7 @@
 #define __LINE3D_H__
 
 #include <Arduino.h>
-#include "utility/Sprite.h"
+#include "M5Unified.h"
 
 typedef struct {
     double x;
@@ -45,7 +45,7 @@ class line3D {
     }
     bool point3Dto2D(point_3d_t *source, point_2d_t *point);
     bool point2DToDisPoint(point_2d_t *point, uint8_t *x, uint8_t *y);
-    bool printLine3D(TFT_eSprite *display, line_3d_t *line, uint32_t color);
+    bool printLine3D(M5Canvas *display, line_3d_t *line, uint32_t color);
     void RotatePoint(point_3d_t *point, double x, double y, double z);
     void RotatePoint(point_3d_t *point, point_3d_t *point_new, double x,
                      double y, double z);
