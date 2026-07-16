@@ -83,6 +83,21 @@ FactoryTest/
 
 8. Upload the program to the M5Core2.
 
+## Running under UIFlow 2 (MicroPython, no re-flashing)
+
+If your Core2 already runs the UIFlow 2 firmware, you can run the same test
+sequence without burning the Arduino build. Use `factory_test.py`:
+
+1. Open the UIFlow 2 web IDE (flow.m5stack.com), switch the project to
+   **Python** mode, paste the contents of `factory_test.py`, and press
+   **Run** (runs once) or **Download** (persists on the device).
+2. Alternatively upload it with Thonny or `mpremote` as `main.py`.
+
+Differences from the Arduino version: the microphone visualizer uses a
+smaller software FFT (slower refresh), and the vibration/RTC/microSD tests
+report on screen if a firmware build does not expose the needed API instead
+of crashing.
+
 ## How to Run
 
 After the program is uploaded, the M5Core2 will begin testing each component in sequence.
