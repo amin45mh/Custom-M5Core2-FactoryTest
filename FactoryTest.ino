@@ -1,9 +1,7 @@
 #include <M5Unified.h>
 #include <Adafruit_NeoPixel.h>
-#include <Unit_Sonic.h>
 #include <WiFi.h>
 #include <SD.h>
-#include "M5UnitSynth.h"
 #include "line3D.h"
 #include "fft.h"
 
@@ -448,10 +446,12 @@ void setupTestScreen() {
     case TEST_PORTS:
       drawHeader("Port Test");
       M5.Display.setTextSize(2);
-      M5.Display.setCursor(10, 90);
+      M5.Display.setCursor(10, 60);
       M5.Display.printf("Angle Unit: %d", 0);
       M5.Display.setCursor(10, 120);
-      M5.Display.printf("Ultrasonic Unit: %d", 0);
+      M5.Display.printf("Blue Button Pressed: No");
+      M5.Display.setCursor(10, 150);
+      M5.Display.printf("Red Button Pressed: No");
       drawNextButtons();
       break;
     
@@ -663,16 +663,6 @@ void setupTestScreen() {
       break;
     }
 
-    // case TEST_BLUETOOTH:
-    //   drawHeader("Bluetooth Test");
-    //   M5.Display.setCursor(10, 60);
-    //   M5.Display.setTextSize(2);
-    //   M5.Display.println("BT hardware is internal.");
-    //   M5.Display.println("Full BT test needs");
-    //   M5.Display.println("pairing/scanning code.");
-    //   showResult(true, "Basic sketch reached BT step.");
-    //   break;
-
     default:
       drawHeader("Tests Complete:");
       M5.Display.setCursor(10, 40);
@@ -755,15 +745,12 @@ void setupTestScreen() {
   }
 }
 
+int startTime = 0;
 
 // Port test variables
-SONIC_I2C sonicSensor;
-M5UnitSynth synth;
-int notes[] = {60, 62, 64, 65, 67, 69, 71, 72};
-int notesCounter = 0;
 int potentiometerValue = 0;
-float ultraSonicValue = 0;
-int startTime = 0;
+int blueButtonState = 0;
+int redButtonState = 0;
 
 // LED test variables
 #define LED_PIN 25
@@ -776,9 +763,6 @@ void nextTest() {
   if (currentTest < TEST_COUNT) {
     currentTest = (TestStep)(currentTest + 1);
 
-    if (currentTest == TEST_LEDS){// Turn off Synth
-      synth.setAllNotesOff(0);
-    }
     if (currentTest == TEST_DISPLAY){// Turn off LEDs
       strip.setBrightness(0);
       strip.show();
@@ -831,12 +815,10 @@ void setup() {
   drawHeader("Connect the following:");
   M5.Display.setCursor(10, 60);
   M5.Display.setTextSize(2);
-  M5.Display.println("Ultrasonic Unit in Port A");
+  M5.Display.println("Angle Unit: Port A");
   M5.Display.setCursor(10, 90);
-  M5.Display.println("Angle Unit in Port B");
+  M5.Display.println("Dual Button Unit: Port C");
   M5.Display.setCursor(10, 120);
-  M5.Display.println("Synth Unit in Port C");
-  M5.Display.setCursor(10, 160);
   M5.Display.println("Tap BtnA when ready.");
   //*****************
 
@@ -847,12 +829,13 @@ void setup() {
     }
   }
 
-  sonicSensor.begin();
-  pinMode(36, INPUT); // Port B
-  synth.begin(&Serial2, UNIT_SYNTH_BAUD, 13, 14); // Port C
-  synth.setVolume(0, 50);
   startTime = millis();
 
+  pinMode(33, INPUT); // Port A Potentiometer
+  pinMode(13, INPUT); // Port C Blue button
+  pinMode(14, INPUT); // Port C Red button
+
+  M5.Lcd.setTextColor(WHITE, BLACK);
   M5.Display.clear();
   setupTestScreen();
 }
@@ -862,30 +845,40 @@ void loop() {
 
   switch (currentTest) {
     case TEST_PORTS:{
-      int newPotentiometerValue = analogRead(36);
-      float newUltraSonicValue = sonicSensor.getDistance();
+      int newPotentiometerValue = analogRead(33);
+      int blueButtonValue = analogRead(13);
+      int redButtonValue = analogRead(14);
 
-      if (abs(newPotentiometerValue - potentiometerValue) > 70){ //debaunce
-        M5.Display.fillRect(10, 90, 240, 20, BLACK);
+      if (abs(newPotentiometerValue - potentiometerValue) > 70){ //debaunce for potentiometer
+        M5.Display.fillRect(10, 60, 240, 20, BLACK);
         potentiometerValue = newPotentiometerValue;
         M5.Display.setCursor(10, 60);
         M5.Display.printf("Angle Unit: %d", potentiometerValue);
       }
-      if (abs(newUltraSonicValue - ultraSonicValue) > 10){
-        M5.Display.fillRect(10, 150, 240, 20, BLACK);
-        ultraSonicValue = newUltraSonicValue;
+      if (!blueButtonValue && !blueButtonState){ //blue button pressed
+        blueButtonState = 1;
+        M5.Display.fillRect(10, 120, 310, 20, BLACK);
         M5.Display.setCursor(10, 120);
-        M5.Display.printf("Ultrasonic Unit:");
-        M5.Display.setCursor(10, 150);
-        M5.Display.printf("%.2fmm", ultraSonicValue);
+        M5.Lcd.println("Blue Button Pressed: Yes");
       }
-      if (millis() - startTime >= 1000){
-        startTime = millis();
-        synth.setNoteOn(0, notes[notesCounter], 127);
-        notesCounter++;
-        if (notesCounter == 8){
-          notesCounter = 0;
-        }
+      else if (blueButtonValue && blueButtonState){
+        blueButtonState = 0;
+        M5.Display.fillRect(10, 120, 310, 20, BLACK);
+        M5.Display.setCursor(10, 120);
+        M5.Lcd.print("Blue Button Pressed: No ");
+      }
+
+      if (!redButtonValue && !redButtonState){ //red button pressed
+        redButtonState = 1;
+        M5.Display.fillRect(10, 150, 310, 20, BLACK);
+        M5.Display.setCursor(10, 150);
+        M5.Lcd.print("Red Button Pressed: Yes");
+      }
+      else if (redButtonValue && redButtonState){
+        redButtonState = 0;
+        M5.Display.fillRect(10, 150, 310, 20, BLACK);
+        M5.Display.setCursor(10, 150);
+        M5.Lcd.print("Red Button Pressed: No ");
       }
 
       break;
