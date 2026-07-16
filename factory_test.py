@@ -119,7 +119,7 @@ def next_pressed():
 # ---------------- LED bar (M5GO Bottom2, G25, 10 LEDs) ----------------
 try:
     from hardware import RGB
-    rgb = RGB()  # built-in bar: pin 25, 10 LEDs
+    rgb = RGB(io=25, n=10, type="SK6812")  # M5GO Bottom2 bar on G25
     rgb.set_brightness(20)  # ~= strip.setBrightness(50) in the original
 except Exception:
     rgb = None
@@ -497,7 +497,13 @@ def setup_test_screen():
         draw_next_buttons()
 
     elif current_test == TEST_LEDS:
+        global start_time, led_counter, led_color_counter
         draw_header("LED Test")
+        if rgb is None:
+            text(10, 90, "RGB init failed on G25", RED)
+        led_counter = 0
+        led_color_counter = 0
+        start_time = time.ticks_ms() - 1000  # first step lights immediately
         draw_next_buttons()
 
     elif current_test == TEST_DISPLAY:
