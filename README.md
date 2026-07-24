@@ -26,9 +26,14 @@ PSRAM, Wi-Fi can be tested automatically. Others require the user to observe the
 
 Before running this project, make sure you have the following installed in the Arduino IDE:
 
+Libraries:
 * M5Unified library
-* WiFi library
-* SD library
+* Adafruit DMA neopixel library
+
+Board Manager:
+* M5Stack Board Manager
+This requires an Additional Boards Manager URL in preferences/settings:
+https://m5stack.oss-cn-shenzhen.aliyuncs.com/resource/arduino/package_m5stack_index.json
 
 You will also need the following hardware:
 

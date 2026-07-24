@@ -88,9 +88,9 @@ def draw_header(title):
 def draw_next_buttons():
     if current_test != TEST_TOUCH:
         Lcd.fillRoundRect(140, 190, 80, 40, 8, GREEN)
-        text(158, 202, "PASS", WHITE, 2, GREEN)
+        text(148, 195, "PASS", WHITE, 2, GREEN)
         Lcd.fillRoundRect(230, 190, 80, 40, 8, RED)
-        text(248, 202, "FAIL", WHITE, 2, RED)
+        text(242, 195, "FAIL", WHITE, 2, RED)
 
 
 def update_results(passed):
@@ -142,9 +142,9 @@ def check_psram():
     try:
         buf = bytearray(100 * 1024)
     except MemoryError:
-        text(20, 50, "PSRAM malloc failed", RED)
+        text(20, 50, "PSRAM malloc failed", RED, 1, BLACK)
         return False
-    text(20, 50, "PSRAM malloc Successful", GREEN)
+    text(20, 50, "PSRAM malloc Successful", GREEN, 1, BLACK)
     time.sleep_ms(100)
 
     pattern = b"\xa5" * 1024
@@ -158,9 +158,9 @@ def check_psram():
     del buf
     gc.collect()
     if ok:
-        text(20, 80, "PSRAM W&R Successful", GREEN)
+        text(20, 80, "PSRAM W&R Successful", GREEN, 1, BLACK)
     else:
-        text(20, 80, "PSRAM read failed", RED)
+        text(20, 80, "PSRAM read failed", RED, 1, BLACK)
     return ok
 
 
@@ -334,58 +334,71 @@ def _fft(re, im):
         size <<= 1
 
 
-def mic_fft_bands():
+MIC_RATE = 16000
+MIC_SAMPLES = 256
+
+mic_buf = array.array("h", bytearray(2 * MIC_SAMPLES))
+mic_prev_level = -1
+
+
+def mic_level():
     try:
         if not M5.Mic.record(mic_buf, MIC_RATE):
             return None
+
         while M5.Mic.isRecording():
             time.sleep_ms(1)
-    except Exception:
+
+    except Exception as e:
+        print("Microphone error:", e)
         return None
 
-    # Same +-2000 input scale as the original, x4 to keep the sensitivity of
-    # its 1024-point FFT with our 256 samples.
-    scale = (4000.0 / 65536.0) * 4.0
-    re = [mic_buf[i] * scale for i in range(FFT_N)]
-    im = [0.0] * FFT_N
-    _fft(re, im)
+    peak = 0
 
-    bands = []
-    for b in range(24):
-        total = 0.0
-        for k in range(5):
-            idx = 1 + b * 5 + k
-            mag = math.sqrt(re[idx] * re[idx] + im[idx] * im[idx])
-            if mag > 2000:
-                mag = 2000
-            total += mag
-        avg = total / 5
-        bands.append(int(avg * 8 // 2000))  # 0..8 like the original
-    return bands
+    for sample in mic_buf:
+        sample = abs(sample)
+
+        if sample > peak:
+            peak = sample
+
+    level = peak * 24 // 12000
+
+    if level > 24:
+        level = 24
+
+    return level
 
 
-def draw_fft_column(col, value):
-    sx = FFT_X0 + col * 12
-    for y in range(9):
-        if y < value:
-            color = ORANGE
-        elif y == value:
-            color = FFT_GREEN
-        else:
-            color = FFT_BG
-        Lcd.fillRect(sx, FFT_Y0 + 120 - y * 12 - 5, 10, 10, color)
+METER_X = 30
+RIGHT_PADDING = 50
+METER_MAX_WIDTH = 320 - METER_X - RIGHT_PADDING  # 270 pixels
 
 
 def microphone_frame():
-    bands = mic_fft_bands()
-    if bands is None:
+    global mic_prev_level
+
+    level = mic_level()
+
+    if level is None or level == mic_prev_level:
         return
-    for col in range(24):
-        if bands[col] != fft_prev_cols[col]:
-            draw_fft_column(col, bands[col])
-            fft_prev_cols[col] = bands[col]
 
+    width = level * METER_MAX_WIDTH // 24
 
+    if width > 0:
+        Lcd.fillRect(METER_X, 90, width, 30, FFT_GREEN)
+
+    remaining_width = METER_MAX_WIDTH - width
+
+    if remaining_width > 0:
+        Lcd.fillRect(
+            METER_X + width,
+            90,
+            remaining_width,
+            30,
+            FFT_BG
+        )
+
+    mic_prev_level = level
 # ---------------- speaker / mic switching ----------------
 def mic_on():
     try:
@@ -522,7 +535,7 @@ def setup_test_screen():
 
     elif current_test == TEST_BUTTONS:
         draw_header("Button Test")
-        text(10, 60, "Press BtnA, BtnB, or BtnC")
+        text(10, 60, "Press BtnA, BtnB, or BtnC", size=1)
         text(10, 100, "Press BtnA", RED)
         text(10, 125, "Press BtnB", RED)
         text(10, 150, "Press BtnC", RED)
@@ -536,8 +549,8 @@ def setup_test_screen():
     elif current_test == TEST_MICROPHONE:
         draw_header("Microphone Test")
         mic_on()
-        fft_prev_cols = [-1] * 24
-        Lcd.fillRect(FFT_X0, FFT_Y0, 288, 120, FFT_BG)
+        fft_prev_cols = -1
+        Lcd.fillRect(FFT_X0, FFT_Y0, 255, 120, FFT_BG)
         draw_next_buttons()
 
     elif current_test == TEST_SPEAKER:
@@ -570,12 +583,12 @@ def setup_test_screen():
         draw_header("RTC Test")
         try:
             dt = rtc_datetime()
-            text(10, 60, "%04d-%02d-%02d" % (dt[0], dt[1], dt[2]))
+            text(10, 57, "%04d-%02d-%02d" % (dt[0], dt[1], dt[2]))
             text(10, 80, "%02d:%02d:%02d" % (dt[4], dt[5], dt[6]))
         except Exception:
             text(10, 60, "RTC read failed", RED)
-        text(10, 120, "Pass if you see the")
-        text(10, 140, "correct time.")
+        text(10, 120, "Pass if you see the", size=1)
+        text(10, 143, "correct time.", size=1)
         draw_next_buttons()
 
     elif current_test == TEST_BATTERY:
@@ -593,11 +606,11 @@ def setup_test_screen():
             except Exception:
                 pass
             text(10, 60, "Battery: %d%%" % level, GREEN)
-            text(10, 80, "Charging: %s" % ("Yes" if charging else "No"),
+            text(10, 90, "Charging: %s" % ("Yes" if charging else "No"),
                  GREEN)
         else:
             update_results(False)
-            text(10, 120, "Power chip did not respond.", RED)
+            text(10, 120, "Power chip did not respond.", RED, size=1)
         time.sleep_ms(3000)
         next_test()
 
@@ -608,7 +621,7 @@ def setup_test_screen():
             text(10, 60, msg)
         else:
             text(10, 60, msg, RED)
-            text(10, 80, "Pass if unused.")
+            text(10, 90, "Pass if unused.")
         draw_next_buttons()
 
     elif current_test == TEST_WIFI:
@@ -629,7 +642,7 @@ def setup_test_screen():
                     ssid = net[0].decode()
                 except Exception:
                     ssid = str(net[0])
-                text(10, 80 + 20 * i, " " + ssid)
+                text(10, 80 + 12 * i, " " + ssid, size=1)
         else:
             update_results(False)
             text(10, 60, "Wi-Fi scan failed", RED)
@@ -644,8 +657,8 @@ def setup_test_screen():
         draw_header("Tests Complete:")
         for i in range(TEST_COUNT):
             color = GREEN if results[i] else RED
-            text(10, 40 + i * 10, TEST_NAMES[i], color, 1)
-        text(10, 220, "Reset device to run again")
+            text(10, 40 + i * 12, TEST_NAMES[i], color, 1)
+        text(10, 220, "Reset device to run again", size=1)
 
 
 def next_test():
@@ -668,7 +681,7 @@ def loop_ports():
     if abs(pot - potentiometer_value) > 70:  # debounce for potentiometer
         potentiometer_value = pot
         Lcd.fillRect(10, 60, 240, 20, BLACK)
-        text(10, 60, "Angle Unit: %d" % potentiometer_value)
+        text(10, 60, "Angle Unit: %d    " % potentiometer_value)
 
     if not blue and not blue_button_state:
         blue_button_state = 1
@@ -729,7 +742,11 @@ def loop_display():
         Lcd.fillScreen(WHITE)
         color_pressed = True
     if color_pressed:
-        time.sleep_ms(2000)
+        for i in range(10): #need to update touch hardware otherwise previous touch stays
+            M5.update()
+            poll_touch()
+            time.sleep_ms(200)
+
         setup_test_screen()
 
 

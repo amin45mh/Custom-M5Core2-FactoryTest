@@ -1,4 +1,4 @@
-make entire screen turn color during screen test
-remove button b for next() during button test
-make next button into pass or fail button
-print pass or fail on serial port
+Micropython
+Font size needs to be fixed
+Display test keeps repeating 
+Microphone test lag/ off center
