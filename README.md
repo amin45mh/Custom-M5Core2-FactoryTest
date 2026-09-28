@@ -1,5 +1,7 @@
 # M5Core2 Sequential Hardware Test
 
+<img width="784" height="800" alt="52b39f78-7239-4ca1-97a2-42c5f5296807" src="https://github.com/user-attachments/assets/b0004e4e-9b2c-4121-a6cc-1956249aee7b" />
+
 ## Overview
 
 This project is a sequential hardware test program for the **M5Stack Core2**. It tests the built-in components of the M5Core2 one at a time, allowing the user to verify that each part of the device is functioning correctly.
