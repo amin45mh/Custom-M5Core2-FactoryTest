@@ -22,6 +22,22 @@ The test is intended to check the following components:
 
 PSRAM, Wi-Fi can be tested automatically. Others require the user to observe the result and confirm that the component is working as expected.
 
+The test exists in two builds: an Arduino sketch (`FactoryTest.ino`) and a
+UIFlow 2 MicroPython port (`factory_test.py`). The MicroPython build is the one
+published to M5Burner.
+
+## Repository layout
+
+| Path | Purpose |
+| --- | --- |
+| `factory_test.py` | MicroPython build, runs under UIFlow 2. This is what ships as firmware. |
+| `FactoryTest.ino` | Arduino build, for flashing from the Arduino IDE. |
+| `fft.cpp`, `fft.h` | Radix-2 FFT used by the Arduino microphone test (third-party, MIT). |
+| `line3D.cpp`, `line3D.h` | 3D line maths for the Arduino IMU orientation cube. |
+| `tools/provision_for_export.py` | Sets a Core2 up for a firmware export: installs `main.py`, sets the boot option, verifies. |
+| `tools/inspect_firmware.py` | Audits an exported `.bin` for stale builds and leaked credentials before publishing. |
+| `M5BURNER_LISTING.md` | Exact field text for the M5Burner publish form. |
+
 ## Requirements
 
 Before running this project, make sure you have the following installed in the Arduino IDE:
@@ -39,9 +55,9 @@ You will also need the following hardware:
 
 * M5Stack Core2
 * USB-C cable
-* Sonic sensor unit
-* Angle unit
-* Synth unit
+* Angle Unit (Port A)
+* Dual Button Unit (Port C)
+* M5GO Bottom2, for the 10x SK6812 LED bar
 * microSD card
 
 ## Setup
@@ -59,8 +75,6 @@ These modules are used to test whether each Grove port is functioning correctly.
 
    * M5Unified
    * Adafruit NeoPixel
-   * WiFi
-   * SD
 
 2. Create a sketch folder with the same name as the `.ino` file.
 
@@ -98,10 +112,10 @@ sequence without burning the Arduino build. Use `factory_test.py`:
    **Run** (runs once) or **Download** (persists on the device).
 2. Alternatively upload it with Thonny or `mpremote` as `main.py`.
 
-Differences from the Arduino version: the microphone visualizer uses a
-smaller software FFT (slower refresh), and the vibration/RTC/microSD tests
-report on screen if a firmware build does not expose the needed API instead
-of crashing.
+Differences from the Arduino version: the microphone test shows a single input
+level meter rather than the C++ build's spectrum bars, and the
+vibration/RTC/microSD tests report on screen if a firmware build does not
+expose the needed API instead of crashing.
 
 ## How to Run
 
@@ -192,3 +206,16 @@ Most parts of the M5Core2 cannot be fully tested automatically. For example, the
 * The user must manually confirm whether some tests pass.
 * The port tests require the correct external units to be connected.
 * The microSD test requires a microSD card to be inserted.
+* MicroPython build: the display test can repeat rather than advancing on the
+  first press.
+* MicroPython build: `factory_test.py` still carries the unused `_fft()` helper
+  and its precomputed tables from before the microphone test moved to a level
+  meter. They cost startup time and RAM on the device but are never called.
+
+## License
+
+Copyright (c) 2026 York University. All rights reserved.
+Developed at York University by Amin Mohammadi and Charles Zeng.
+
+`fft.cpp` / `fft.h` are third-party MIT-licensed code by Robin Scheibler and
+keep their own licence. See [LICENSE](LICENSE) for the full notice.

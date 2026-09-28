@@ -1,0 +1,27 @@
+# Firmware images and flash dumps
+# M5Burner's Firmware Exporter writes esp32fw.bin; these are large (16 MB for
+# the Core2) and are rebuilt from the device, so they do not belong in git.
+*.bin
+*.img
+!.gitkeep
+
+# Arduino IDE build output
+build/
+*.elf
+*.hex
+*.map
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Editors and OS metadata
+.DS_Store
+._*
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp

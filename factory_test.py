@@ -10,8 +10,8 @@
 #   - M5GO Bottom2 for the 10x SK6812 LED bar on G25
 #
 # Differences from the Arduino version:
-#   - The mic visualizer uses a 256-point pure-Python FFT (no esp-dsp here),
-#     so it refreshes slower than the C++ original but shows the same bars.
+#   - The mic test draws a single input level meter instead of the C++ build's
+#     spectrum bars; a pure-Python FFT was too slow to refresh usefully here.
 #   - PSRAM is tested by allocating/patterning a 100 KB buffer on the
 #     MicroPython heap (which lives in PSRAM on this firmware).
 #   - Vibration/RTC/SD calls are wrapped defensively: if a firmware build
